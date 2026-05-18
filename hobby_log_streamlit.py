@@ -89,16 +89,20 @@ def parse_money(value) -> float | None:
         return None
 
 
-def _check_password() -> bool:
-    """Return True if the user has entered the correct password."""
+def _check_password():
+    """Stop script execution if the user has not entered the correct password."""
     if st.session_state.get("authenticated"):
-        return True
+        return
 
-    st.set_page_config(page_title="Hobby Log", page_icon="🃏")
     st.title("🃏 Hobby Log")
     pw = st.text_input("Password", type="password")
     if pw:
-        if pw == st.secrets.get("app_password", ""):
+        try:
+            correct = st.secrets["app_password"]
+        except KeyError:
+            st.error("app_password not set in Streamlit secrets.")
+            st.stop()
+        if pw == correct:
             st.session_state.authenticated = True
             st.rerun()
         else:
