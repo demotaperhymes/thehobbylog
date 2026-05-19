@@ -167,10 +167,11 @@ def main():
             filtered = filtered[filtered[col] == val]
 
     if search:
-        q = search.lower()
-        mask = filtered.apply(
-            lambda row: any(q in str(v).lower() for v in row), axis=1
-        )
+        terms = search.lower().split()
+        def row_matches(row):
+            row_text = " ".join(str(v).lower() for v in row)
+            return all(term in row_text for term in terms)
+        mask = filtered.apply(row_matches, axis=1)
         filtered = filtered[mask]
 
     # ── Metrics ───────────────────────────────────────────────────────────────
