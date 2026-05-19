@@ -117,17 +117,48 @@ def main():
 
     st.markdown("""
     <style>
-    /* Larger font throughout the app */
+    /* Base font */
     html, body, [class*="css"] { font-size: 16px !important; }
-    .stTextInput input, .stSelectbox div { font-size: 16px !important; }
-    label, .stMetric { font-size: 16px !important; }
+    .stTextInput input { font-size: 16px !important; }
+    label { font-size: 16px !important; }
+
+    /* Mobile overrides */
+    @media (max-width: 768px) {
+        /* Tighter page padding */
+        .block-container {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 0.75rem !important;
+        }
+        /* Larger, finger-friendly search box */
+        .stTextInput input {
+            font-size: 18px !important;
+            padding: 10px 14px !important;
+            min-height: 48px !important;
+        }
+        /* Bigger selectbox text */
+        div[data-baseweb="select"] * {
+            font-size: 16px !important;
+        }
+        /* Full-width refresh button */
+        .stButton > button {
+            width: 100% !important;
+            min-height: 48px !important;
+            font-size: 16px !important;
+        }
+        /* Bigger metric values */
+        [data-testid="stMetricValue"] { font-size: 26px !important; }
+        [data-testid="stMetricLabel"] { font-size: 14px !important; }
+        /* Expander header */
+        details summary p { font-size: 16px !important; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
     _check_password()
 
     # ── Header ────────────────────────────────────────────────────────────────
-    hdr, btn_col = st.columns([8, 1])
+    hdr, btn_col = st.columns([4, 1])
     hdr.title("🃏 Hobby Log")
     if btn_col.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
@@ -156,17 +187,19 @@ def main():
 
     # ── Filters ───────────────────────────────────────────────────────────────
     with st.expander("Filters", expanded=False):
-        filter_cols_layout = st.columns(len(FILTER_COLS))
         filter_selections: dict[str, str] = {}
-        for i, col in enumerate(FILTER_COLS):
-            if col not in df.columns:
-                continue
-            options = ["All"] + sorted(
-                {v for v in df[col].tolist() if v}, key=str.lower
-            )
-            filter_selections[col] = filter_cols_layout[i].selectbox(
-                col.title(), options, key=f"f_{col}"
-            )
+        available = [col for col in FILTER_COLS if col in df.columns]
+        # 2-column grid — readable on both desktop and mobile
+        for i in range(0, len(available), 2):
+            pair = available[i:i + 2]
+            cols = st.columns(2)
+            for j, col in enumerate(pair):
+                options = ["All"] + sorted(
+                    {v for v in df[col].tolist() if v}, key=str.lower
+                )
+                filter_selections[col] = cols[j].selectbox(
+                    col.title(), options, key=f"f_{col}"
+                )
 
     # ── Apply filters ─────────────────────────────────────────────────────────
     filtered = df.copy()
