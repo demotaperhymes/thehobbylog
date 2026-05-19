@@ -79,14 +79,13 @@ def load_data() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=present_cols)
 
 
-def parse_money(value) -> float | None:
-    if not value:
-        return None
-    s = str(value).replace("$", "").replace(",", "").strip()
-    try:
-        return float(s)
-    except ValueError:
-        return None
+def _col_total(series) -> float:
+    """Sum a column of money strings like '$12.50', ignoring blanks."""
+    numeric = pd.to_numeric(
+        series.str.replace(r"[$,]", "", regex=True).str.strip(),
+        errors="coerce",
+    )
+    return float(numeric.sum())
 
 
 def _check_password():
@@ -100,7 +99,10 @@ def _check_password():
         try:
             correct = st.secrets["app_password"]
         except KeyError:
-            st.error("app_password not set in Streamlit secrets.")
+            st.error(
+                f"app_password not found. Top-level secret keys visible: "
+                f"{list(st.secrets.keys())}"
+            )
             st.stop()
         if pw == correct:
             st.session_state.authenticated = True
@@ -172,12 +174,11 @@ def main():
         filtered = filtered[mask]
 
     # ── Metrics ───────────────────────────────────────────────────────────────
-    total_spend = 0.0
-    for col in COST_COLS:
-        if col in filtered.columns:
-            total_spend += (
-                filtered[col].apply(parse_money).dropna().sum()
-            )
+    total_spend = sum(
+        _col_total(filtered[col])
+        for col in COST_COLS
+        if col in filtered.columns
+    )
 
     m1, m2 = st.columns(2)
     m1.metric("Purchases", f"{len(filtered):,}")
