@@ -34,7 +34,7 @@ TAB_NAME            = "The Hobby Log"
 
 COLUMNS = [
     "purchase date", "post date", "platform", "vendor",
-    "set", "inserts/parallel", "player (if single)", "numbered",
+    "set", "inserts / parallel", "player (if single)", "numbered",
     "price", "shipping", "tax", "additional cost",
     "comments", "comp", "disposition",
 ]
