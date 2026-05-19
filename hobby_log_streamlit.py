@@ -93,22 +93,60 @@ def _check_password():
     if st.session_state.get("authenticated"):
         return
 
-    st.title("🃏 Hobby Log")
-    pw = st.text_input("Password", type="password")
-    if pw:
-        try:
-            correct = st.secrets["app_password"]
-        except KeyError:
-            st.error(
-                f"app_password not found. Top-level secret keys visible: "
-                f"{list(st.secrets.keys())}"
-            )
-            st.stop()
-        if pw == correct:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Incorrect password")
+    # Mobile-friendly centered login card
+    st.markdown("""
+    <style>
+    /* Password page: vertically center content */
+    html, body, [class*="css"] { font-size: 16px !important; }
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 2rem !important;
+        }
+        .stTextInput input {
+            font-size: 18px !important;
+            min-height: 48px !important;
+            padding: 10px 14px !important;
+        }
+        .stButton > button {
+            min-height: 52px !important;
+            font-size: 18px !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    _, col, _ = st.columns([1, 3, 1])
+    with col:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.title("🃏 Hobby Log")
+        st.caption("Sports card purchase tracker")
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        with st.form("login_form"):
+            pw = st.text_input("Password", type="password",
+                               placeholder="Enter password",
+                               label_visibility="collapsed")
+            submitted = st.form_submit_button("Sign In",
+                                              use_container_width=True,
+                                              type="primary")
+
+        if submitted:
+            try:
+                correct = st.secrets["app_password"]
+            except KeyError:
+                st.error(
+                    f"app_password not found. Top-level secret keys visible: "
+                    f"{list(st.secrets.keys())}"
+                )
+                st.stop()
+            if pw == correct:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password")
+
     st.stop()
 
 
