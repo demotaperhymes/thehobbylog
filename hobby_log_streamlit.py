@@ -115,6 +115,15 @@ def _check_password():
 def main():
     st.set_page_config(page_title="Hobby Log", page_icon="🃏", layout="wide")
 
+    st.markdown("""
+    <style>
+    /* Larger font throughout the app */
+    html, body, [class*="css"] { font-size: 16px !important; }
+    .stTextInput input, .stSelectbox div { font-size: 16px !important; }
+    label, .stMetric { font-size: 16px !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
     _check_password()
 
     # ── Header ────────────────────────────────────────────────────────────────
@@ -190,8 +199,9 @@ def main():
         filtered,
         use_container_width=True,
         hide_index=True,
+        wrap_text=True,
         column_config={
-            col: st.column_config.TextColumn(col.title())
+            col: st.column_config.TextColumn(col.title(), wrap_text=True)
             for col in filtered.columns
         },
     )
