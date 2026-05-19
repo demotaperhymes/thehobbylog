@@ -199,7 +199,6 @@ def main():
         filtered,
         use_container_width=True,
         hide_index=True,
-        wrap_text=True,
         column_config={
             col: st.column_config.TextColumn(col.title())
             for col in filtered.columns
