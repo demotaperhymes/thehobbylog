@@ -201,7 +201,7 @@ def main():
         hide_index=True,
         wrap_text=True,
         column_config={
-            col: st.column_config.TextColumn(col.title(), wrap_text=True)
+            col: st.column_config.TextColumn(col.title())
             for col in filtered.columns
         },
     )
