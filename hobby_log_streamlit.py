@@ -79,18 +79,19 @@ def load_data() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=present_cols)
 
 
-def _render_cards(df: pd.DataFrame):
+def _render_responsive(df: pd.DataFrame):
+    """Cards on mobile, full table on desktop — pure CSS, no toggle needed."""
     if df.empty:
         st.info("No results found.")
         return
 
     def v(row, col):
-        s = str(row.get(col, "") or "").strip()
-        return s if s else ""
+        return str(row.get(col, "") or "").strip()
 
     def esc(s):
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+    # ── Card layout (mobile) ──────────────────────────────────────────────────
     def field_html(label, value):
         if not value:
             return ""
@@ -103,88 +104,94 @@ def _render_cards(df: pd.DataFrame):
 
     def row_html(fields, extra_class=""):
         inner = "".join(field_html(lbl, val) for lbl, val in fields)
-        if not inner:
-            return ""
-        return f'<div class="hl-row {extra_class}">{inner}</div>'
-
-    css = """
-    <style>
-    .hl-card {
-        background: #1a2535;
-        border: 1px solid #253545;
-        border-radius: 12px;
-        padding: 12px 14px;
-        margin-bottom: 10px;
-    }
-    .hl-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px 18px;
-        padding-bottom: 8px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #253545;
-    }
-    .hl-row.last {
-        padding-bottom: 0;
-        margin-bottom: 0;
-        border-bottom: none;
-    }
-    .hl-field {
-        display: flex;
-        flex-direction: column;
-        min-width: 55px;
-        max-width: 100%;
-    }
-    .hl-lbl {
-        color: #7a8fa3;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        line-height: 1.4;
-    }
-    .hl-val {
-        color: #e8eaed;
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 1.4;
-        word-break: break-word;
-    }
-    .hl-row.r1 .hl-val { font-size: 15px; font-weight: 600; }
-    .hl-row.money .hl-val { color: #4ade80; }
-    </style>
-    """
+        return f'<div class="hl-row {extra_class}">{inner}</div>' if inner else ""
 
     cards = []
     for _, row in df.iterrows():
         r = row.to_dict()
-        r1 = row_html([
-            ("Set",     v(r, "set")),
-            ("Player",  v(r, "player (if single)")),
-            ("Insert",  v(r, "inserts / parallel")),
-            ("#",       v(r, "numbered")),
-        ], "r1")
-        r2 = row_html([
-            ("Platform",  v(r, "platform")),
-            ("Purchased", v(r, "purchase date")),
-            ("Posted",    v(r, "post date")),
-            ("Vendor",    v(r, "vendor")),
-        ])
-        r3 = row_html([
-            ("Price",     v(r, "price")),
-            ("Shipping",  v(r, "shipping")),
-            ("Tax",       v(r, "tax")),
-            ("Add'l",     v(r, "additional cost")),
-            ("Comp",      v(r, "comp")),
-        ], "money")
-        r4 = row_html([
-            ("Disposition", v(r, "disposition")),
-            ("Comments",    v(r, "comments")),
-        ], "last")
-
+        r1 = row_html([("Set", v(r,"set")), ("Player", v(r,"player (if single)")),
+                       ("Insert", v(r,"inserts / parallel")), ("#", v(r,"numbered"))], "r1")
+        r2 = row_html([("Platform", v(r,"platform")), ("Purchased", v(r,"purchase date")),
+                       ("Posted", v(r,"post date")), ("Vendor", v(r,"vendor"))])
+        r3 = row_html([("Price", v(r,"price")), ("Shipping", v(r,"shipping")),
+                       ("Tax", v(r,"tax")), ("Add'l", v(r,"additional cost")),
+                       ("Comp", v(r,"comp"))], "money")
+        r4 = row_html([("Disposition", v(r,"disposition")), ("Comments", v(r,"comments"))], "last")
         cards.append(f'<div class="hl-card">{r1}{r2}{r3}{r4}</div>')
 
-    st.markdown(css + "\n".join(cards), unsafe_allow_html=True)
+    cards_html = "\n".join(cards)
+
+    # ── Table layout (desktop) ────────────────────────────────────────────────
+    headers = [c.title() for c in COLUMNS if c in df.columns]
+    header_row = "".join(f"<th>{esc(h)}</th>" for h in headers)
+
+    table_rows = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        r = row.to_dict()
+        cls = "tr-even" if i % 2 == 0 else "tr-odd"
+        cells = "".join(
+            f'<td class="{"td-money" if c in MONEY_COLS else ""}">{esc(v(r, c))}</td>'
+            for c in COLUMNS if c in df.columns
+        )
+        table_rows.append(f'<tr class="{cls}">{cells}</tr>')
+
+    table_html = f"""
+    <div class="tbl-wrap">
+      <table class="hl-table">
+        <thead><tr>{header_row}</tr></thead>
+        <tbody>{"".join(table_rows)}</tbody>
+      </table>
+    </div>
+    """
+
+    # ── Combined output ───────────────────────────────────────────────────────
+    st.markdown(f"""
+    <style>
+    /* ── Responsive visibility ── */
+    .hl-mobile  {{ display: block; }}
+    .hl-desktop {{ display: none;  }}
+    @media (min-width: 769px) {{
+        .hl-mobile  {{ display: none;  }}
+        .hl-desktop {{ display: block; }}
+    }}
+
+    /* ── Card styles ── */
+    .hl-card {{
+        background:#1a2535; border:1px solid #253545;
+        border-radius:12px; padding:12px 14px; margin-bottom:10px;
+    }}
+    .hl-row {{
+        display:flex; flex-wrap:wrap; gap:2px 18px;
+        padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid #253545;
+    }}
+    .hl-row.last {{ padding-bottom:0; margin-bottom:0; border-bottom:none; }}
+    .hl-field    {{ display:flex; flex-direction:column; min-width:55px; max-width:100%; }}
+    .hl-lbl      {{ color:#7a8fa3; font-size:10px; font-weight:700;
+                    text-transform:uppercase; letter-spacing:.5px; line-height:1.4; }}
+    .hl-val      {{ color:#e8eaed; font-size:14px; font-weight:500;
+                    line-height:1.4; word-break:break-word; }}
+    .hl-row.r1   .hl-val {{ font-size:15px; font-weight:600; }}
+    .hl-row.money .hl-val {{ color:#4ade80; }}
+
+    /* ── Table styles ── */
+    .tbl-wrap  {{ overflow-x:auto; width:100%; }}
+    .hl-table  {{ border-collapse:collapse; width:100%; font-size:13px;
+                  color:#e8eaed; white-space:nowrap; }}
+    .hl-table thead tr {{ background:#1D9BF0; color:#fff; }}
+    .hl-table th {{
+        padding:8px 10px; text-align:left; font-size:12px;
+        font-weight:700; letter-spacing:.3px; border-right:1px solid #1278c2;
+    }}
+    .hl-table th:last-child {{ border-right:none; }}
+    .hl-table td {{ padding:7px 10px; border-bottom:1px solid #253545; }}
+    .hl-table .tr-even {{ background:#162030; }}
+    .hl-table .tr-odd  {{ background:#1a2a3a; }}
+    .hl-table .td-money {{ text-align:right; color:#4ade80; }}
+    .hl-table tr:hover td {{ background:#1e3a50; }}
+    </style>
+    <div class="hl-mobile">{cards_html}</div>
+    <div class="hl-desktop">{table_html}</div>
+    """, unsafe_allow_html=True)
 
 
 def _col_total(series) -> float:
@@ -373,8 +380,8 @@ def main():
     m1.metric("Purchases", f"{len(filtered):,}")
     m2.metric("Total Spend", f"${total_spend:,.2f}")
 
-    # ── Cards ─────────────────────────────────────────────────────────────────
-    _render_cards(filtered)
+    # ── Responsive layout ─────────────────────────────────────────────────────
+    _render_responsive(filtered)
 
 
 if __name__ == "__main__":
