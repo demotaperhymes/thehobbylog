@@ -79,6 +79,114 @@ def load_data() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=present_cols)
 
 
+def _render_cards(df: pd.DataFrame):
+    if df.empty:
+        st.info("No results found.")
+        return
+
+    def v(row, col):
+        s = str(row.get(col, "") or "").strip()
+        return s if s else ""
+
+    def esc(s):
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def field_html(label, value):
+        if not value:
+            return ""
+        return (
+            f'<div class="hl-field">'
+            f'<span class="hl-lbl">{esc(label)}</span>'
+            f'<span class="hl-val">{esc(value)}</span>'
+            f'</div>'
+        )
+
+    def row_html(fields, extra_class=""):
+        inner = "".join(field_html(lbl, val) for lbl, val in fields)
+        if not inner:
+            return ""
+        return f'<div class="hl-row {extra_class}">{inner}</div>'
+
+    css = """
+    <style>
+    .hl-card {
+        background: #1a2535;
+        border: 1px solid #253545;
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+    }
+    .hl-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 18px;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #253545;
+    }
+    .hl-row.last {
+        padding-bottom: 0;
+        margin-bottom: 0;
+        border-bottom: none;
+    }
+    .hl-field {
+        display: flex;
+        flex-direction: column;
+        min-width: 55px;
+        max-width: 100%;
+    }
+    .hl-lbl {
+        color: #7a8fa3;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1.4;
+    }
+    .hl-val {
+        color: #e8eaed;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+    .hl-row.r1 .hl-val { font-size: 15px; font-weight: 600; }
+    .hl-row.money .hl-val { color: #4ade80; }
+    </style>
+    """
+
+    cards = []
+    for _, row in df.iterrows():
+        r = row.to_dict()
+        r1 = row_html([
+            ("Set",     v(r, "set")),
+            ("Player",  v(r, "player (if single)")),
+            ("Insert",  v(r, "inserts / parallel")),
+            ("#",       v(r, "numbered")),
+        ], "r1")
+        r2 = row_html([
+            ("Platform",  v(r, "platform")),
+            ("Purchased", v(r, "purchase date")),
+            ("Posted",    v(r, "post date")),
+            ("Vendor",    v(r, "vendor")),
+        ])
+        r3 = row_html([
+            ("Price",     v(r, "price")),
+            ("Shipping",  v(r, "shipping")),
+            ("Tax",       v(r, "tax")),
+            ("Add'l",     v(r, "additional cost")),
+            ("Comp",      v(r, "comp")),
+        ], "money")
+        r4 = row_html([
+            ("Disposition", v(r, "disposition")),
+            ("Comments",    v(r, "comments")),
+        ], "last")
+
+        cards.append(f'<div class="hl-card">{r1}{r2}{r3}{r4}</div>')
+
+    st.markdown(css + "\n".join(cards), unsafe_allow_html=True)
+
+
 def _col_total(series) -> float:
     """Sum a column of money strings like '$12.50', ignoring blanks."""
     numeric = pd.to_numeric(
@@ -265,16 +373,8 @@ def main():
     m1.metric("Purchases", f"{len(filtered):,}")
     m2.metric("Total Spend", f"${total_spend:,.2f}")
 
-    # ── Table ─────────────────────────────────────────────────────────────────
-    st.dataframe(
-        filtered,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            col: st.column_config.TextColumn(col.title())
-            for col in filtered.columns
-        },
-    )
+    # ── Cards ─────────────────────────────────────────────────────────────────
+    _render_cards(filtered)
 
 
 if __name__ == "__main__":
