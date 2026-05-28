@@ -166,20 +166,23 @@ def _render_responsive(df: pd.DataFrame):
     }}
     .hl-row.last {{ padding-bottom:0; margin-bottom:0; border-bottom:none; }}
     .hl-field    {{ display:flex; flex-direction:column; min-width:55px; max-width:100%; }}
-    .hl-lbl      {{ color:#7a8fa3; font-size:10px; font-weight:700;
-                    text-transform:uppercase; letter-spacing:.5px; line-height:1.4; }}
-    .hl-val      {{ color:#e8eaed; font-size:14px; font-weight:500;
-                    line-height:1.4; word-break:break-word; }}
-    .hl-row.r1   .hl-val {{ font-size:15px; font-weight:600; }}
+    .hl-lbl      {{ color:#7a8fa3; font-size:clamp(9px,0.9vw + 0.2rem,11px);
+                    font-weight:700; text-transform:uppercase;
+                    letter-spacing:.5px; line-height:1.4; }}
+    .hl-val      {{ color:#e8eaed; font-size:clamp(12px,1.2vw + 0.3rem,15px);
+                    font-weight:500; line-height:1.4; word-break:break-word; }}
+    .hl-row.r1   .hl-val {{ font-size:clamp(13px,1.3vw + 0.3rem,16px); font-weight:600; }}
     .hl-row.money .hl-val {{ color:#4ade80; }}
 
     /* ── Table styles ── */
     .tbl-wrap  {{ overflow-x:auto; width:100%; }}
-    .hl-table  {{ border-collapse:collapse; width:100%; font-size:13px;
+    .hl-table  {{ border-collapse:collapse; width:100%;
+                  font-size:clamp(11px,1.1vw + 0.2rem,14px);
                   color:#e8eaed; white-space:nowrap; }}
     .hl-table thead tr {{ background:#1D9BF0; color:#fff; }}
     .hl-table th {{
-        padding:8px 10px; text-align:left; font-size:12px;
+        padding:clamp(5px,0.6vw,9px) clamp(6px,0.8vw,11px);
+        text-align:left; font-size:clamp(10px,1vw + 0.15rem,13px);
         font-weight:700; letter-spacing:.3px; border-right:1px solid #1278c2;
     }}
     .hl-table th:last-child {{ border-right:none; }}
@@ -270,40 +273,50 @@ def main():
 
     st.markdown("""
     <style>
-    /* Base font */
-    html, body, [class*="css"] { font-size: 16px !important; }
-    .stTextInput input { font-size: 16px !important; }
-    label { font-size: 16px !important; }
+    /* ── Fluid base font: 13px on small phones → 16px on desktop ── */
+    html, body, [class*="css"] {
+        font-size: clamp(13px, 1.4vw + 0.5rem, 16px) !important;
+    }
 
-    /* Mobile overrides */
+    /* Inputs & labels scale with viewport */
+    .stTextInput input {
+        font-size: clamp(14px, 1.6vw + 0.4rem, 18px) !important;
+        min-height: clamp(40px, 5vw, 52px) !important;
+    }
+    label, .stSelectbox label {
+        font-size: clamp(12px, 1.2vw + 0.4rem, 15px) !important;
+    }
+    div[data-baseweb="select"] * {
+        font-size: clamp(13px, 1.3vw + 0.4rem, 16px) !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        font-size: clamp(13px, 1.3vw + 0.3rem, 16px) !important;
+        min-height: clamp(38px, 4.5vw, 48px) !important;
+    }
+
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: clamp(20px, 3vw + 0.5rem, 30px) !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: clamp(11px, 1.1vw + 0.3rem, 14px) !important;
+    }
+
+    /* Expander */
+    details summary p {
+        font-size: clamp(13px, 1.3vw + 0.3rem, 16px) !important;
+    }
+
+    /* Mobile-specific layout tweaks */
     @media (max-width: 768px) {
-        /* Tighter page padding */
         .block-container {
             padding-left: 0.75rem !important;
             padding-right: 0.75rem !important;
             padding-top: 0.75rem !important;
         }
-        /* Larger, finger-friendly search box */
-        .stTextInput input {
-            font-size: 18px !important;
-            padding: 10px 14px !important;
-            min-height: 48px !important;
-        }
-        /* Bigger selectbox text */
-        div[data-baseweb="select"] * {
-            font-size: 16px !important;
-        }
-        /* Full-width refresh button */
-        .stButton > button {
-            width: 100% !important;
-            min-height: 48px !important;
-            font-size: 16px !important;
-        }
-        /* Bigger metric values */
-        [data-testid="stMetricValue"] { font-size: 26px !important; }
-        [data-testid="stMetricLabel"] { font-size: 14px !important; }
-        /* Expander header */
-        details summary p { font-size: 16px !important; }
+        .stButton > button { width: 100% !important; }
     }
     </style>
     """, unsafe_allow_html=True)
